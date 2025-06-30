@@ -52,12 +52,23 @@ app.get("/listings/:id", async(req,res)=>{
 })
 
 //Create Route
-app.post("/listings",async(req,res)=>{
-   // let {title,description,image,price,country,location} = req.body;
-   const newlisting =new Listing(req.body.listing);
-   await newlisting.save();
-   res.redirect("/listings");
-})
+
+app.post("/listings", async (req, res) => {
+ 
+
+  // ✅ If user leaves image field blank, set default image
+  if (!req.body.listing.image || !req.body.listing.image.url) {
+    req.body.listing.image = {
+      url: "https://via.placeholder.com/300x200?text=No+Image",
+      filename: "default"
+    };
+  }
+
+  const newlisting = new Listing(req.body.listing);
+  await newlisting.save();
+  res.redirect("/listings");
+});
+
 
 
 //Edit Route
