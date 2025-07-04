@@ -86,6 +86,9 @@ app.get("/listings/:id", wrapAsync(async (req, res, next) => {
 
 app.post("/listings",
    wrapAsync( async (req, res,next) => {
+      if(!req.body.listing){
+         throw new ExpressError(400,"send valid data for listing");
+      }
 const newlisting = new Listing(req.body.listing);
   await newlisting.save();
   res.redirect("/listings");
@@ -104,20 +107,22 @@ app.get("/listings/:id/edit",   wrapAsync(async(req,res)=>{
    const listing = await Listing.findById(id);
    res.render("listings/edit.ejs",{listing});
 }));
-//Update Route
-// console.log("🚀 Server starting...");
 
-// app.put("/listings/:id",  wrapAsync(async (req,res)=>{
-//    let{id} = req.params;
-//      // Fallback image
-//   if (!req.body.listing.image || !req.body.listing.image.url) {
-//     req.body.listing.image = {
-//       url: "https://via.placeholder.com/300x200?text=No+Image"
-//     };
-//   }
-//   await Listing.findByIdAndUpdate(id,{...req.body.listing});
-//  res.redirect(`/listings/${id}`);
-// }));
+
+//Update Route
+
+
+app.put("/listings/:id",  wrapAsync(async (req,res)=>{
+   let{id} = req.params;
+     // Fallback image
+  if (!req.body.listing.image || !req.body.listing.image.url) {
+    req.body.listing.image = {
+      url: "https://via.placeholder.com/300x200?text=No+Image"
+    };
+  }
+  await Listing.findByIdAndUpdate(id,{...req.body.listing});
+ res.redirect(`/listings/${id}`);
+}));
 app.put("/listings/:id", wrapAsync(async (req, res) => {
   let { id } = req.params;
 
@@ -177,7 +182,8 @@ app.all("*",(req,res,next)=>{
 app.use((err, req, res, next) => {
    
    const { statusCode = 500, message = "Something went wrong!" } = err;
-   res.status(statusCode).send(message);
+   //res.status(statusCode).send(message);
+   res.status(statusCode).render("error.ejs",{message});
 });
 
 
