@@ -1,5 +1,6 @@
 <% layout("/layouts/boilerplate") %>
 
+
 <body>
     <h3>All Listings</h3>
 
@@ -14,7 +15,7 @@
         <div class="col"> 
             <a href="/listings/<%= listing._id %>" style="text-decoration: none; color: inherit;">
                 <!-- 🔧 CHANGED (before): Removed fixed width and added 'h-100' to stretch height -->
-                <div class="card h-100"> 
+                <div class="card h-100 listing-card"> 
                     <!-- 🔧 fallback added for missing image -->
                     <img src="<%= listing.image?.url || 'https://via.placeholder.com/300x200?text=No+Image' %>" class="card-img-top" alt="Listing Image" style="height: 20rem;">  
                     <div class="card-img-overlay"></div>

@@ -1,16 +1,23 @@
  const express = require("express")
  const app = express();
  const mongoose=require("mongoose")
-const Listing = require("./models/listing.js");
-const path = require("path");
-const methodOverride =require("method-override");
-const ejsMate= require("ejs-mate")
-const wrapAsync =require("./utils/wrapAsync.js");
-const ExpressError = require("./utils/ExpressError");
-const {listingSchema}=require("./schema.js")
+ const path = require("path");
+ const methodOverride =require("method-override");
+ const ejsMate= require("ejs-mate")
+ const ExpressError = require("./utils/ExpressError");
+ const session =require("express-session");
+ const flash = require("connect-flash");
+ const passport = require("passport");
+ const LocalStrategy = require("passport-local");
+ const User = require("./models/user.js");
+
+ const listingRouter= require("./routes/listing.js");
+ const reviewRouter = require("./routes/review.js");
+ const userRouter = require("./routes/user.js");
 
 
- const MONGO_URL ="mongodb://127.0.0.1:27017/wanderlust"
+
+const MONGO_URL ="mongodb://127.0.0.1:27017/wanderlust"
 
 
  main()
@@ -32,167 +39,57 @@ const {listingSchema}=require("./schema.js")
  app.engine('ejs',ejsMate);
  app.use(express.static(path.join(__dirname,"/public")));
 
+const sessionOption ={
+   secret:"mysupersecretcode",
+   resave:false,
+   saveUninitialized:true,
+   cookie:{
+      expire:Date.now() + 7 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly:true,
+   },
+};
+
+
+
  app.get("/",(req,res)=>{
+
     res.send("hi i am doing a major project");
  })
 
-const validateListing =(req,res,next)=>{
-   
-     let {error}= listingSchema.validate(req.body);
-     if(error){
-      let errMsg = error.details.map((el)=>el.message).join(",");
-      throw new ExpressError(400,errMsg);
-     }
-   
-   if(error){
-      throw new ExpressError(400,result.error);
-   }else{
-      next();
-   }
-}
 
 
 
 
 
-//Index Route
-
- app.get("/listings",  wrapAsync(async(req,res)=>{
-   const allListings=await Listing.find({})
-   res.render("listings/index",{allListings});
- }));
+app.use(session(sessionOption));
+app.use(flash());
 
 
-//New Route
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
 
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
-app.get("/listings/new", (req,res)=>{
-   res.render("listings/new.ejs")
-})
-
-
-// //Show Route
-
-
-// app.get("/listings/:id",  wrapAsync(async(req,res)=>{
-//     let {id} =req.params;
-//     const listing = await Listing.findById(id);
-//       console.log("📸 Listing data:", listing);  
-//    res.render("listings/show.ejs",{listing})
-// }));
-
-
-// Show Route
-
-app.get("/listings/:id", wrapAsync(async (req, res, next) => {
-    let { id } = req.params;
-    const listing = await Listing.findById(id);
-
-    console.log("📸 Listing data:", listing);
-
-    if (!listing) {
-        // Agar koi listing nahi mili to error throw karo
-        throw new ExpressError(404, "Listing not found!");
-    }
-
-    res.render("listings/show.ejs", { listing });
-}));
-
-
-
-
-//Create Route
-
-
-app.post("/listings",
-   validateListing,
-   wrapAsync( async (req, res,next) => {
  
-const newlisting = new Listing(req.body.listing);
-  await newlisting.save();
-  res.redirect("/listings");
+
+app.use((req,res,next)=>{
+   res.locals.success = req.flash("success");
+   res.locals.error = req.flash("error");
+   next();
 })
-  
-
-);
 
 
 
-//Edit Route
-
-
-app.get("/listings/:id/edit",   wrapAsync(async(req,res)=>{
-  let {id} =req.params;
-   const listing = await Listing.findById(id);
-   res.render("listings/edit.ejs",{listing});
-}));
-
-
-//Update Route
-
-
-app.put("/listings/:id", 
-   validateListing,
-    wrapAsync(async (req,res)=>{
-   let{id} = req.params;
-     // Fallback image
-  if (!req.body.listing.image || !req.body.listing.image.url) {
-    req.body.listing.image = {
-      url: "https://via.placeholder.com/300x200?text=No+Image"
-    };
-  }
-  await Listing.findByIdAndUpdate(id,{...req.body.listing});
- res.redirect(`/listings/${id}`);
-}));
-app.put("/listings/:id", wrapAsync(async (req, res) => {
-  let { id } = req.params;
-
-  // Safely normalize image data
-  if (typeof req.body.listing.image === "string") {
-    req.body.listing.image = { url: req.body.listing.image };
-  }
-
-  // Fallback if no image provided
-  if (!req.body.listing.image || !req.body.listing.image.url) {
-    req.body.listing.image = {
-      url: "https://via.placeholder.com/300x200?text=No+Image"
-    };
-  }
-
-  await Listing.findByIdAndUpdate(id, { ...req.body.listing });
-  res.redirect(`/listings/${id}`);
-}));
 
 
 
-//Delete Route
+app.use("/listings",listingRouter);
+app.use("/listings/:id/reviews",reviewRouter);
+app.use("/",userRouter);
 
-
-app.delete("/listings/:id",  wrapAsync( async(req,res)=>{
-    let {id} =req.params;
-  let deleteListing= await Listing.findByIdAndDelete(id)
-  console.log(deleteListing);
-  res.redirect("/listings");
-}));
-
-
-
-//  app.get("/testlisting", async(req,res)=>{
-
-//    let sampleListing = new Listing({
-//       title:"my new villa ",
-//       description:"By the beach",
-//       price:1200,
-//       location:"Calangute,Goa",
-//       country:"India",
-
-//    });
-
-// await sampleListing.save();
-// console.log("sample was saved");
-// res.send("sucessful testing");
-  
-//  });
 
 
 app.all("*",(req,res,next)=>{
