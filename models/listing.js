@@ -9,8 +9,8 @@ const listingSchema = new mongoose.Schema({
 
 
 image: {
-  url: { type: String, default: "https://via.placeholder.com/300x200?text=No+Image" },
-  filename: String
+url : String,
+filename : String,
 },
  price: Number,
   location: String,
